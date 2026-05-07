@@ -3,771 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Advanced 3D Kart Engine</title>
+    <title>Happy Glass Clone</title>
     <style>
-        /* --- ADVANCED CSS UI SUITE (MK7 STYLE) --- */
-        :root {
-            --mk-blue: #0055ff;
-            --mk-red: #ff2222;
-            --mk-gold: #ffd700;
-            --ui-bg: rgba(0, 0, 0, 0.5);
-        }
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #87CEEB;
-            font-family: 'Arial Black', Impact, sans-serif;
+            background-color: #2c3e50; overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             touch-action: none; user-select: none; -webkit-user-select: none;
         }
-        #game-container { position: relative; width: 100vw; height: 100vh; }
-        canvas { display: block; width: 100%; height: 100%; }
-        
-        #ui-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 10;
-        }
-        
-        /* Minimap */
-        #minimap-container {
-            position: absolute; bottom: 20px; right: 20px;
-            width: 150px; height: 150px; background: var(--ui-bg);
-            border: 3px solid #fff; border-radius: 50%; overflow: hidden;
-            box-shadow: 0 0 10px rgba(0,0,0,0.8);
-        }
-        #minimap { width: 100%; height: 100%; }
-
-        /* Item Roulette */
-        #item-box {
-            position: absolute; top: 20px; left: 20px;
-            width: 80px; height: 80px; background: rgba(0,0,0,0.7);
-            border: 4px solid var(--mk-gold); border-radius: 15px;
+        #game-wrapper {
+            position: relative; width: 100vw; height: 100vh;
             display: flex; justify-content: center; align-items: center;
-            font-size: 40px; color: #fff; text-shadow: 2px 2px 0 #000;
-            box-shadow: 0 0 15px var(--mk-gold);
-            transition: all 0.1s;
         }
-        .roulette-anim { animation: spinItems 0.1s linear infinite; }
-        @keyframes spinItems { 0% { content: '🍄'; } 33% { content: '🍌'; } 66% { content: '🐢'; } 100% { content: '⭐'; } }
-
-        /* Position & Lap */
-        #position-display {
-            position: absolute; bottom: 20px; left: 20px;
-            font-size: 80px; color: var(--mk-gold);
-            text-shadow: 4px 4px 0px #000, -2px -2px 0px #000, 2px -2px 0px #000, -2px 2px 0px #000;
-            font-style: italic;
-        }
-        #lap-display {
-            position: absolute; top: 20px; right: 20px;
-            font-size: 30px; color: #fff; background: var(--ui-bg);
-            padding: 10px 20px; border-radius: 10px; border: 2px solid #fff;
-            text-shadow: 2px 2px 0 #000;
-        }
-
-        /* Countdown */
-        #countdown {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 150px; color: var(--mk-red);
-            text-shadow: 5px 5px 0px #000, 0 0 20px #fff;
-            display: none;
-        }
-
-        /* Speed Effects */
-        #speed-lines {
+        canvas { background-color: #ecf0f1; box-shadow: 0 0 20px rgba(0,0,0,0.8); max-width: 100%; max-height: 100%; }
+        #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .hud { display: flex; justify-content: space-between; padding: 20px; font-size: 24px; font-weight: bold; color: #fff; text-shadow: 2px 2px 4px #000; }
+        #lvl-txt { background: #3498db; padding: 10px 20px; border-radius: 15px; }
+        #status-txt { background: #e74c3c; padding: 10px 20px; border-radius: 15px; }
+        #overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: radial-gradient(circle, transparent 50%, rgba(255,255,255,0.3) 100%);
-            opacity: 0; transition: opacity 0.2s; pointer-events: none;
+            background: rgba(0,0,0,0.85); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; pointer-events: auto; z-index: 50;
         }
-
-        /* Mobile Controls */
-        #mobile-controls {
-            display: none; width: 100%; height: 100%; position: absolute; top:0; left:0;
-            pointer-events: none;
+        h1 { color: #f1c40f; font-size: 50px; margin: 0 0 20px 0; text-align: center; }
+        p { color: #fff; font-size: 22px; text-align: center; margin-bottom: 30px; }
+        button {
+            padding: 15px 50px; font-size: 28px; font-weight: bold; color: #fff;
+            background: #2ecc71; border: none; border-radius: 10px; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4); text-transform: uppercase;
         }
-        .btn-group {
-            position: absolute; bottom: 30px; display: flex; gap: 20px; pointer-events: auto;
-        }
-        #dpad { left: 30px; }
-        #action-btns { right: 180px; /* offset for minimap */ }
-        
-        .m-btn {
-            width: 70px; height: 70px; border-radius: 50%;
-            background: rgba(255,255,255,0.2); border: 3px solid #fff;
-            color: #fff; font-size: 24px; display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(5px); box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            user-select: none;
-        }
-        .m-btn:active { background: rgba(255,255,255,0.5); transform: scale(0.95); }
-        .m-btn.drift { border-color: var(--mk-blue); color: var(--mk-blue); }
-        .m-btn.item { border-color: var(--mk-red); color: var(--mk-red); }
-
-        @media (max-width: 900px) {
-            #mobile-controls { display: block; }
-            #minimap-container { width: 100px; height: 100px; top: 20px; bottom: auto; right: 20px; }
-            #lap-display { top: 140px; }
-            #action-btns { right: 30px; }
-        }
+        button:active { transform: scale(0.95); }
+        #progress-bar { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); width: 200px; height: 20px; background: #333; border-radius: 10px; border: 2px solid #fff; display: none; }
+        #progress-fill { width: 0%; height: 100%; background: #3498db; border-radius: 8px; transition: width 0.2s; }
     </style>
 </head>
 <body>
 
-<div id="game-container">
-    <canvas id="main-canvas"></canvas>
-    <div id="speed-lines"></div>
-    <div id="ui-layer">
-        <div id="item-box"></div>
-        <div id="lap-display">LAP 1/3</div>
-        <div id="position-display">1st</div>
-        <div id="countdown">3</div>
-        <div id="minimap-container"><canvas id="minimap"></canvas></div>
+<div id="game-wrapper">
+    <div id="ui">
+        <div class="hud">
+            <div id="lvl-txt">LVL 1</div>
+            <div id="status-txt">DRAW LINE</div>
+        </div>
+        <div id="progress-bar"><div id="progress-fill"></div></div>
     </div>
     
-    <div id="mobile-controls">
-        <div class="btn-group" id="dpad">
-            <div class="m-btn" id="btn-left">◀</div>
-            <div class="m-btn" id="btn-right">▶</div>
-        </div>
-        <div class="btn-group" id="action-btns">
-            <div class="m-btn item" id="btn-item">🎁</div>
-            <div class="m-btn drift" id="btn-drift">R</div>
-            <div class="m-btn" id="btn-brake">B</div>
-            <div class="m-btn" id="btn-accel">A</div>
-        </div>
+    <div id="overlay">
+        <h1 id="o-title">HAPPY GLASS</h1>
+        <p id="o-desc">Draw lines to guide the water.<br>Fill the glass to the target line!</p>
+        <button id="start-btn">PLAY</button>
     </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
 
 <script>
-    /**
-     * ADVANCED KART ENGINE CORE
-     * Simulates MK7 Drifting, Raycast Suspension, and Item Physics
-     */
+    const Engine = Matter.Engine, Render = Matter.Render, Runner = Matter.Runner,
+          Bodies = Matter.Bodies, Composite = Matter.Composite, Events = Matter.Events,
+          Vector = Matter.Vector;
 
-    // --- 1. GLOBAL SETUP & RENDERING ---
-    const canvas = document.getElementById('main-canvas');
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputEncoding = THREE.sRGBEncoding;
+    const GW = 600, GH = 800;
+    const engine = Engine.create({ positionIterations: 10, velocityIterations: 10 });
+    const render = Render.create({
+        element: document.getElementById('game-wrapper'), engine: engine,
+        options: { width: GW, height: GH, wireframes: false, background: '#ecf0f1', pixelRatio: window.devicePixelRatio || 1 }
+    });
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB); // Sky blue
-    scene.fog = new THREE.Fog(0x87CEEB, 200, 800);
+    // 20 Hardcoded Levels Array [Spigot(x,y), Glass(x,y), Obstacles[[x,y,w,h,angle]...]]
+    const levels = [
+        { s: [300, 100], g: [300, 700], o: [] },
+        { s: [100, 150], g: [450, 700], o: [[300, 400, 250, 20, 0.2]] },
+        { s: [300, 100], g: [300, 700], o: [[200, 350, 150, 20, 0.5], [400, 500, 150, 20, -0.5]] },
+        { s: [500, 150], g: [100, 700], o: [[300, 300, 300, 20, -0.3], [300, 550, 300, 20, 0.3]] },
+        { s: [300, 100], g: [300, 700], o: [[300, 400, 100, 100, 0]] },
+        { s: [100, 100], g: [500, 700], o: [[200, 250, 20, 150, 0], [400, 450, 20, 150, 0]] },
+        { s: [300, 150], g: [300, 650], o: [[150, 400, 200, 20, 0.8], [450, 400, 200, 20, -0.8]] },
+        { s: [150, 100], g: [150, 700], o: [[300, 300, 400, 20, 0], [150, 500, 300, 20, 0]] },
+        { s: [500, 100], g: [100, 700], o: [[400, 250, 150, 20, -0.4], [250, 450, 150, 20, -0.4]] },
+        { s: [300, 100], g: [500, 700], o: [[300, 300, 20, 200, 0], [150, 600, 300, 20, 0]] },
+        { s: [100, 150], g: [100, 700], o: [[200, 300, 200, 20, 0.3], [200, 500, 200, 20, -0.3]] },
+        { s: [500, 150], g: [500, 700], o: [[400, 300, 200, 20, -0.3], [400, 500, 200, 20, 0.3]] },
+        { s: [300, 100], g: [300, 750], o: [[200, 300, 80, 80, 0], [400, 300, 80, 80, 0], [300, 500, 80, 80, 0.785]] },
+        { s: [100, 100], g: [400, 700], o: [[250, 200, 200, 20, 0], [250, 400, 200, 20, 0], [250, 600, 200, 20, 0]] },
+        { s: [450, 100], g: [150, 700], o: [[300, 400, 400, 20, 0.5]] },
+        { s: [300, 100], g: [300, 600], o: [[100, 350, 150, 20, -0.5], [500, 350, 150, 20, 0.5]] },
+        { s: [150, 150], g: [450, 650], o: [[250, 300, 100, 100, 0], [350, 500, 100, 100, 0.4]] },
+        { s: [300, 100], g: [100, 700], o: [[300, 200, 200, 20, 0], [300, 400, 200, 20, 0], [300, 600, 200, 20, 0]] },
+        { s: [500, 150], g: [300, 700], o: [[400, 350, 150, 20, -0.6], [200, 550, 150, 20, 0.6]] },
+        { s: [300, 100], g: [300, 750], o: [[300, 250, 50, 50, 0], [200, 400, 50, 50, 0], [400, 400, 50, 50, 0], [300, 550, 50, 50, 0]] }
+    ];
 
-    const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 2000);
-    const cameraRig = new THREE.Group();
-    scene.add(cameraRig);
-    cameraRig.add(camera);
+    let state = 'INIT', currentLvl = 0, waterDrops = [], drawnLines = [], glassSensor, spawnTimer, checkTimer;
+    const MAX_WATER = 100, WIN_TARGET = 75, MAX_INK = 800;
+    let inkUsed = 0, isDrawing = false, lastPt = null;
 
-    // Lighting Setup
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-    scene.add(ambient);
-    const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-    sun.position.set(200, 500, 100);
-    sun.castShadow = true;
-    sun.shadow.camera.left = -300; sun.shadow.camera.right = 300;
-    sun.shadow.camera.top = 300; sun.shadow.camera.bottom = -300;
-    sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
-    scene.add(sun);
+    function initLevel(lvl) {
+        Composite.clear(engine.world); Engine.clear(engine);
+        waterDrops = []; drawnLines = []; inkUsed = 0; state = 'DRAW';
+        document.getElementById('lvl-txt').innerText = `LVL ${lvl + 1}`;
+        document.getElementById('status-txt').innerText = 'DRAW LINE';
+        document.getElementById('status-txt').style.background = '#e74c3c';
+        document.getElementById('progress-bar').style.display = 'none';
+        document.getElementById('progress-fill').style.width = '0%';
 
-    // --- 2. PROCEDURAL TEXTURES & MATERIALS ---
-    function createCheckerboard() {
-        const ctx = document.createElement('canvas').getContext('2d');
-        ctx.canvas.width = 256; ctx.canvas.height = 256;
-        ctx.fillStyle = '#333'; ctx.fillRect(0,0,256,256);
-        ctx.fillStyle = '#ccc';
-        ctx.fillRect(0,0,128,128); ctx.fillRect(128,128,128,128);
-        const tex = new THREE.CanvasTexture(ctx.canvas);
-        tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-        return tex;
-    }
-
-    function createRoadTexture() {
-        const ctx = document.createElement('canvas').getContext('2d');
-        ctx.canvas.width = 512; ctx.canvas.height = 512;
-        ctx.fillStyle = '#444'; ctx.fillRect(0,0,512,512);
-        // Road lines
-        ctx.fillStyle = '#fff';
-        for(let i=0; i<512; i+=64) ctx.fillRect(248, i, 16, 32);
-        // Curbs
-        ctx.fillStyle = '#f00'; ctx.fillRect(0,0,20,512); ctx.fillRect(492,0,20,512);
-        ctx.fillStyle = '#fff'; 
-        for(let i=0; i<512; i+=64) { ctx.fillRect(0,i,20,32); ctx.fillRect(492,i,20,32); }
+        const d = levels[lvl];
         
-        const tex = new THREE.CanvasTexture(ctx.canvas);
-        tex.wrapS = THREE.RepeatWrapping; tex.wrapT = THREE.RepeatWrapping;
-        return tex;
-    }
+        // Bounds
+        Composite.add(engine.world, [
+            Bodies.rectangle(GW/2, GH+50, GW*2, 100, { isStatic: true, render: { visible: false } }),
+            Bodies.rectangle(-50, GH/2, 100, GH*2, { isStatic: true, render: { visible: false } }),
+            Bodies.rectangle(GW+50, GH/2, 100, GH*2, { isStatic: true, render: { visible: false } })
+        ]);
 
-    const matRoad = new THREE.MeshStandardMaterial({ map: createRoadTexture(), roughness: 0.8 });
-    const matGrass = new THREE.MeshStandardMaterial({ color: 0x33aa33, roughness: 0.9 });
-    const matItemBox = new THREE.MeshStandardMaterial({ map: createCheckerboard(), color: 0xffff00, transparent: true, opacity: 0.8 });
-
-    // --- 3. ADVANCED TRACK GENERATION (Spline + Banking) ---
-    const trackCurve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(0, 0, -400),
-        new THREE.Vector3(300, 50, -600),
-        new THREE.Vector3(600, 100, -300),
-        new THREE.Vector3(800, 20, 200),
-        new THREE.Vector3(400, -20, 500),
-        new THREE.Vector3(0, 0, 600),
-        new THREE.Vector3(-400, 30, 400),
-        new THREE.Vector3(-600, 0, 0),
-        new THREE.Vector3(-300, -10, -200),
-        new THREE.Vector3(0, 0, 0)
-    ]);
-    trackCurve.closed = true;
-
-    // Generate Track Mesh
-    const trackParams = { width: 60, segments: 400 };
-    const trackGeo = new THREE.TubeGeometry(trackCurve, trackParams.segments, trackParams.width, 12, true);
-    
-    // Flatten tube and apply texture coordinates
-    const positions = trackGeo.attributes.position.array;
-    const uvs = trackGeo.attributes.uv.array;
-    for(let i = 0; i < positions.length; i+=3) {
-        // Flatten Y relative to spline to create a road surface rather than a tube
-        // This is a complex procedural flattening algorithm
-        const v = new THREE.Vector3(positions[i], positions[i+1], positions[i+2]);
-        // Simple approximation for demo:
-        v.y *= 0.1; 
-        positions[i+1] = v.y;
-    }
-    trackGeo.computeVertexNormals();
-
-    const trackMesh = new THREE.Mesh(trackGeo, matRoad);
-    trackMesh.receiveShadow = true;
-    scene.add(trackMesh);
-
-    // Ground Plane (Off-road)
-    const groundGeo = new THREE.PlaneGeometry(3000, 3000, 32, 32);
-    groundGeo.rotateX(-Math.PI/2);
-    // Add noise to ground
-    const gPos = groundGeo.attributes.position.array;
-    for(let i=0; i<gPos.length; i+=3) { gPos[i+1] = Math.sin(gPos[i]*0.01) * Math.cos(gPos[i+2]*0.01) * 20 - 5; }
-    groundGeo.computeVertexNormals();
-    const groundMesh = new THREE.Mesh(groundGeo, matGrass);
-    groundMesh.receiveShadow = true;
-    scene.add(groundMesh);
-
-    // Add Item Boxes along track
-    const itemBoxes = [];
-    const spawnPoints = [0.15, 0.45, 0.75];
-    spawnPoints.forEach(t => {
-        for(let i = -1; i <= 1; i++) {
-            const pt = trackCurve.getPointAt(t);
-            const tan = trackCurve.getTangentAt(t);
-            const right = new THREE.Vector3().crossVectors(tan, new THREE.Vector3(0,1,0)).normalize();
-            
-            const boxGeo = new THREE.BoxGeometry(6, 6, 6);
-            const box = new THREE.Mesh(boxGeo, matItemBox);
-            box.position.copy(pt).add(right.multiplyScalar(i * 15));
-            box.position.y += 5;
-            
-            // Add internal spinning mesh
-            const innerBox = new THREE.Mesh(new THREE.BoxGeometry(4,4,4), new THREE.MeshStandardMaterial({color:0xffffff}));
-            box.add(innerBox);
-
-            box.userData = { active: true, respawnTimer: 0 };
-            scene.add(box);
-            itemBoxes.push(box);
-        }
-    });
-
-    // --- 4. PARTICLE SYSTEM (Sparks & Exhaust) ---
-    class ParticleManager {
-        constructor() {
-            this.particles = [];
-            this.geometry = new THREE.BoxGeometry(0.8, 0.8, 0.8);
-            this.matBlue = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true });
-            this.matOrange = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true });
-            this.matDust = new THREE.MeshBasicMaterial({ color: 0x888888, transparent: true });
-        }
-
-        spawn(pos, type, count, dir) {
-            const mat = type === 'blue' ? this.matBlue : (type === 'orange' ? this.matOrange : this.matDust);
-            for(let i=0; i<count; i++) {
-                const p = new THREE.Mesh(this.geometry, mat);
-                p.position.copy(pos);
-                p.position.add(new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2));
-                
-                const velocity = dir.clone().multiplyScalar(Math.random() * 2 + 1);
-                velocity.y += Math.random() * 2;
-                velocity.x += (Math.random() - 0.5) * 2;
-                velocity.z += (Math.random() - 0.5) * 2;
-
-                scene.add(p);
-                this.particles.push({ mesh: p, life: 1.0, vel: velocity, decay: Math.random() * 0.05 + 0.02 });
-            }
-        }
-
-        update() {
-            for(let i = this.particles.length - 1; i >= 0; i--) {
-                const p = this.particles[i];
-                p.life -= p.decay;
-                if(p.life <= 0) {
-                    scene.remove(p.mesh);
-                    this.particles.splice(i, 1);
-                } else {
-                    p.vel.y -= 0.1; // gravity
-                    p.mesh.position.add(p.vel);
-                    p.mesh.scale.setScalar(p.life);
-                    p.mesh.material.opacity = p.life;
-                }
-            }
-        }
-    }
-    const particles = new ParticleManager();
-
-    // --- 5. ADVANCED KART PHYSICS ENTITY ---
-    class Kart {
-        constructor(isPlayer, color) {
-            this.isPlayer = isPlayer;
-            this.group = new THREE.Group();
-            
-            // Build Kart Mesh
-            const bodyGeo = new THREE.BoxGeometry(4, 2, 8);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.2, metalness: 0.5 });
-            this.body = new THREE.Mesh(bodyGeo, bodyMat);
-            this.body.position.y = 1.5;
-            this.body.castShadow = true;
-            this.group.add(this.body);
-
-            // Driver block
-            const headGeo = new THREE.SphereGeometry(1.5, 16, 16);
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.set(0, 3.5, -1);
-            this.group.add(head);
-
-            // Wheels
-            this.wheels = [];
-            const wGeo = new THREE.CylinderGeometry(1.5, 1.5, 1, 16).rotateZ(Math.PI/2);
-            const wMat = new THREE.MeshStandardMaterial({ color: 0x111 });
-            const wPos = [[-2.5, 1.5, 3], [2.5, 1.5, 3], [-2.5, 1.5, -3], [2.5, 1.5, -3]];
-            wPos.forEach(p => {
-                const w = new THREE.Mesh(wGeo, wMat);
-                w.position.set(...p);
-                this.group.add(w);
-                this.wheels.push(w);
-            });
-
-            scene.add(this.group);
-
-            // MK7 Physics Variables
-            this.velocity = new THREE.Vector3();
-            this.speed = 0;
-            this.baseMaxSpeed = isPlayer ? 3.5 : 3.2;
-            this.maxSpeed = this.baseMaxSpeed;
-            this.accel = 0.05;
-            this.friction = 0.02;
-            this.turnSpeed = 0.05;
-            
-            // Drifting Mechanics
-            this.isDrifting = false;
-            this.driftDir = 0; // 1 or -1
-            this.driftPower = 0; // Builds up for mini-turbo
-            this.driftAngle = 0; // Visual slip angle
-            this.boostTimer = 0;
-            this.jumpTimer = 0;
-
-            // Track logic
-            this.progress = 0;
-            this.lap = 1;
-            this.item = null;
-        }
-
-        update(dt, input) {
-            // 1. Boost Management
-            if (this.boostTimer > 0) {
-                this.maxSpeed = this.baseMaxSpeed * 1.5;
-                this.boostTimer--;
-                if(this.isPlayer) document.getElementById('speed-lines').style.opacity = 1;
-            } else {
-                this.maxSpeed = this.baseMaxSpeed;
-                if(this.isPlayer) document.getElementById('speed-lines').style.opacity = 0;
-            }
-
-            // 2. Input & Acceleration
-            if (input.accel) this.speed += this.accel;
-            if (input.brake) this.speed -= this.accel * 1.5;
-            if (!input.accel && !input.brake) {
-                this.speed *= (1 - this.friction); // Natural drag
-            }
-            
-            // Off-road penalty raycast
-            const raycaster = new THREE.Raycaster(this.group.position.clone().add(new THREE.Vector3(0,5,0)), new THREE.Vector3(0,-1,0));
-            const intersects = raycaster.intersectObject(trackMesh);
-            const isOffroad = intersects.length === 0;
-            
-            let currentMax = isOffroad ? this.maxSpeed * 0.4 : this.maxSpeed;
-            if(this.boostTimer > 0) currentMax = this.maxSpeed; // Boost ignores offroad
-            
-            this.speed = THREE.MathUtils.clamp(this.speed, -1, currentMax);
-
-            // 3. MK7 Drifting Logic
-            if (input.drift && Math.abs(this.speed) > 1.0 && this.jumpTimer <= 0) {
-                if (!this.isDrifting) {
-                    // Initiate Drift (Hop)
-                    this.isDrifting = true;
-                    this.driftDir = input.left ? 1 : (input.right ? -1 : 0);
-                    if(this.driftDir === 0) this.isDrifting = false;
-                    else this.jumpTimer = 15; // hop frames
-                }
-            } else if (!input.drift) {
-                // Release Drift -> Mini Turbo Check
-                if (this.isDrifting && this.driftPower > 100) {
-                    this.boostTimer = this.driftPower > 200 ? 60 : 30; // Orange or Blue spark duration
-                }
-                this.isDrifting = false;
-                this.driftPower = 0;
-                this.driftAngle = THREE.MathUtils.lerp(this.driftAngle, 0, 0.2);
-            }
-
-            // Steering
-            let turnMod = this.speed / this.maxSpeed; // Less turning at low speeds
-            if (this.isDrifting) {
-                // Drift steering (tighter inward, wider outward)
-                this.driftPower++;
-                
-                // Visual Sparks
-                const sparkType = this.driftPower > 200 ? 'orange' : 'blue';
-                if(this.driftPower > 100 && Math.random() < 0.3) {
-                    const sparkPos = this.group.position.clone().add(new THREE.Vector3(0, 0.5, 0));
-                    const sparkDir = new THREE.Vector3(0,0,-1).applyQuaternion(this.group.quaternion).multiplyScalar(-1);
-                    particles.spawn(sparkPos, sparkType, 3, sparkDir);
-                }
-
-                if (input.left) {
-                    this.group.rotation.y += (this.driftDir === 1 ? this.turnSpeed * 1.5 : this.turnSpeed * 0.5) * turnMod;
-                }
-                if (input.right) {
-                    this.group.rotation.y -= (this.driftDir === -1 ? this.turnSpeed * 1.5 : this.turnSpeed * 0.5) * turnMod;
-                }
-                // Visual slip angle
-                this.driftAngle = THREE.MathUtils.lerp(this.driftAngle, this.driftDir * 0.5, 0.1);
-            } else {
-                // Normal steering
-                if (input.left) this.group.rotation.y += this.turnSpeed * turnMod;
-                if (input.right) this.group.rotation.y -= this.turnSpeed * turnMod;
-            }
-
-            // Apply visual slip to body mesh
-            this.body.rotation.y = this.driftAngle;
-
-            // 4. Hop Physics
-            if (this.jumpTimer > 0) {
-                this.group.position.y += Math.sin(this.jumpTimer * 0.2) * 0.5;
-                this.jumpTimer--;
-            }
-
-            // 5. Movement Vector Application
-            const forward = new THREE.Vector3(0,0,-1).applyQuaternion(this.group.quaternion);
-            
-            // Drift affects movement vector (slipping)
-            if(this.isDrifting) {
-                const slip = new THREE.Vector3(-1,0,0).applyQuaternion(this.group.quaternion).multiplyScalar(this.driftDir * 0.2);
-                forward.add(slip).normalize();
-            }
-
-            this.group.position.add(forward.multiplyScalar(this.speed));
-
-            // 6. Ground Snap & Gravity
-            if(intersects.length > 0) {
-                this.group.position.y = intersects[0].point.y + 1.5;
-                // Complex orientation matching (simplified for stability)
-            } else {
-                // Offroad/Air gravity
-                const groundRay = new THREE.Raycaster(this.group.position.clone(), new THREE.Vector3(0,-1,0));
-                const groundHit = groundRay.intersectObject(groundMesh);
-                if(groundHit.length > 0 && groundHit[0].distance < 50) {
-                    this.group.position.y -= 0.5; // fall
-                    if(groundHit[0].distance < 1.6) this.group.position.y = groundHit[0].point.y + 1.5;
-                }
-            }
-
-            // Wheel anims
-            this.wheels.forEach(w => w.rotation.x -= this.speed * 0.2);
-            if(!this.isDrifting) {
-                this.wheels[0].rotation.z = input.left ? 0.3 : (input.right ? -0.3 : 0);
-                this.wheels[1].rotation.z = input.left ? 0.3 : (input.right ? -0.3 : 0);
-            }
-
-            // 7. Track Progress & Laps (Raycast to spline)
-            this.updateProgress();
-            
-            if(this.isPlayer) this.checkItems();
-        }
-
-        updateProgress() {
-            // Find closest point on spline to update position
-            let closestDist = Infinity;
-            let closestT = this.progress;
-            
-            // Search around current progress
-            for(let i = -0.05; i <= 0.05; i += 0.005) {
-                let checkT = (this.progress + i + 1.0) % 1.0;
-                let pt = trackCurve.getPointAt(checkT);
-                let d = this.group.position.distanceTo(pt);
-                if(d < closestDist) {
-                    closestDist = d;
-                    closestT = checkT;
-                }
-            }
-            
-            // Lap crossing logic
-            if(this.progress > 0.9 && closestT < 0.1) {
-                this.lap++;
-                if(this.isPlayer) updateUI();
-            } else if (this.progress < 0.1 && closestT > 0.9) {
-                this.lap--; // Backwards
-            }
-            this.progress = closestT;
-        }
-
-        checkItems() {
-            itemBoxes.forEach(box => {
-                if(!box.userData.active) return;
-                if(this.group.position.distanceTo(box.position) < 10) {
-                    // Hit box
-                    box.userData.active = false;
-                    box.visible = false;
-                    box.userData.respawnTimer = 200;
-                    
-                    // Roulette UI
-                    const el = document.getElementById('item-box');
-                    el.classList.add('roulette-anim');
-                    setTimeout(() => {
-                        el.classList.remove('roulette-anim');
-                        const items = ['🍄', '🍌', '🐢'];
-                        this.item = items[Math.floor(Math.random()*items.length)];
-                        el.innerText = this.item;
-                    }, 1500);
-                }
-            });
-        }
-
-        useItem() {
-            if(!this.item) return;
-            if(this.item === '🍄') {
-                this.boostTimer = 100;
-            }
-            // Clear item
-            this.item = null;
-            document.getElementById('item-box').innerText = '';
-        }
-    }
-
-    // --- 6. GAME INITIALIZATION ---
-    let racers = [];
-    let player;
-    const inputs = { accel: false, brake: false, left: false, right: false, drift: false, item: false };
-    
-    function init() {
-        // Create Player
-        player = new Kart(true, 0x0000ff); // Blue kart
+        // Glass
+        const gw = 90, gh = 110, gt = 10;
+        const gOpt = { isStatic: true, friction: 0.1, render: { fillStyle: 'rgba(255,255,255,0.4)', strokeStyle: '#bdc3c7', lineWidth: 2 } };
+        Composite.add(engine.world, [
+            Bodies.rectangle(d.g[0] - gw/2, d.g[1], gt, gh, gOpt),
+            Bodies.rectangle(d.g[0] + gw/2, d.g[1], gt, gh, gOpt),
+            Bodies.rectangle(d.g[0], d.g[1] + gh/2, gw + gt, gt, gOpt)
+        ]);
         
-        // Spawn at start line
-        const startPt = trackCurve.getPointAt(0);
-        const startLook = trackCurve.getPointAt(0.01);
-        player.group.position.copy(startPt);
-        player.group.position.x -= 10;
-        player.group.lookAt(startLook);
-        racers.push(player);
+        glassSensor = Bodies.rectangle(d.g[0], d.g[1], gw - 15, gh - 15, { isStatic: true, isSensor: true, render: { visible: false } });
+        Composite.add(engine.world, glassSensor);
 
-        // Create Bots
-        const botColors = [0xff0000, 0x00ff00, 0xffff00, 0xff00ff, 0x00ffff];
-        botColors.forEach((color, i) => {
-            const bot = new Kart(false, color);
-            bot.group.position.copy(startPt);
-            bot.group.position.x += (i%2==0 ? 10 : -10);
-            bot.group.position.z -= (i+1) * 15; // Grid stagger
-            bot.group.lookAt(startLook);
-            racers.push(bot);
-        });
+        // Spigot
+        Composite.add(engine.world, Bodies.rectangle(d.s[0], d.s[1], 40, 20, { isStatic: true, render: { fillStyle: '#7f8c8d' } }));
 
-        startCountdown();
-    }
-
-    let gameState = 'START'; // START, RACE, FINISH
-
-    function startCountdown() {
-        const cd = document.getElementById('countdown');
-        cd.style.display = 'block';
-        let count = 3;
-        const iv = setInterval(() => {
-            count--;
-            if(count > 0) { cd.innerText = count; } 
-            else if (count === 0) { cd.innerText = 'GO!'; cd.style.color = '#00ff00'; gameState = 'RACE'; } 
-            else { cd.style.display = 'none'; clearInterval(iv); }
-        }, 1000);
-    }
-
-    // --- 7. INPUT HANDLING (Cross-Platform) ---
-    window.addEventListener('keydown', e => {
-        if(e.code === 'ArrowUp' || e.code === 'KeyW') inputs.accel = true;
-        if(e.code === 'ArrowDown' || e.code === 'KeyS') inputs.brake = true;
-        if(e.code === 'ArrowLeft' || e.code === 'KeyA') inputs.left = true;
-        if(e.code === 'ArrowRight' || e.code === 'KeyD') inputs.right = true;
-        if(e.code === 'ShiftRight' || e.code === 'KeyR' || e.code === 'Space') inputs.drift = true;
-        if(e.code === 'KeyE' || e.code === 'ShiftLeft') player.useItem();
-    });
-
-    window.addEventListener('keyup', e => {
-        if(e.code === 'ArrowUp' || e.code === 'KeyW') inputs.accel = false;
-        if(e.code === 'ArrowDown' || e.code === 'KeyS') inputs.brake = false;
-        if(e.code === 'ArrowLeft' || e.code === 'KeyA') inputs.left = false;
-        if(e.code === 'ArrowRight' || e.code === 'KeyD') inputs.right = false;
-        if(e.code === 'ShiftRight' || e.code === 'KeyR' || e.code === 'Space') inputs.drift = false;
-    });
-
-    // Touch Controls
-    const bindBtn = (id, key, action) => {
-        const btn = document.getElementById(id);
-        btn.addEventListener('touchstart', e => { e.preventDefault(); if(action) action(); else inputs[key] = true; });
-        btn.addEventListener('touchend', e => { e.preventDefault(); if(!action) inputs[key] = false; });
-    };
-    bindBtn('btn-accel', 'accel'); bindBtn('btn-brake', 'brake');
-    bindBtn('btn-left', 'left'); bindBtn('btn-right', 'right');
-    bindBtn('btn-drift', 'drift'); bindBtn('btn-item', null, () => player.useItem());
-
-    // --- 8. UI & MINIMAP LOGIC ---
-    const mapCanvas = document.getElementById('minimap');
-    const mapCtx = mapCanvas.getContext('2d');
-    mapCanvas.width = 150; mapCanvas.height = 150;
-
-    function drawMinimap() {
-        mapCtx.clearRect(0,0,150,150);
-        mapCtx.fillStyle = 'rgba(0,0,0,0.5)';
-        mapCtx.fillRect(0,0,150,150);
-
-        // Transform 3D coords to Minimap (-800 to 800) -> (0 to 150)
-        const scale = v => ((v + 800) / 1600) * 150;
-
-        // Draw Track
-        mapCtx.beginPath();
-        for(let i=0; i<=1; i+=0.02) {
-            const pt = trackCurve.getPointAt(i);
-            mapCtx[i===0?'moveTo':'lineTo'](scale(pt.x), scale(pt.z));
-        }
-        mapCtx.strokeStyle = '#fff'; mapCtx.lineWidth = 3; mapCtx.stroke();
-
-        // Draw Racers
-        racers.forEach(r => {
-            mapCtx.beginPath();
-            mapCtx.arc(scale(r.group.position.x), scale(r.group.position.z), r.isPlayer?4:3, 0, Math.PI*2);
-            mapCtx.fillStyle = r.isPlayer ? '#0055ff' : '#ff0000';
-            mapCtx.fill();
+        // Obstacles
+        d.o.forEach(o => {
+            Composite.add(engine.world, Bodies.rectangle(o[0], o[1], o[2], o[3], { isStatic: true, angle: o[4], render: { fillStyle: '#e67e22' } }));
         });
     }
 
-    function updateUI() {
-        document.getElementById('lap-display').innerText = `LAP ${Math.min(player.lap, 3)}/3`;
-        if(player.lap > 3) {
-            document.getElementById('position-display').innerText = "FINISH!";
-            gameState = 'FINISH';
+    function spawnWater() {
+        if(state !== 'SIM') return;
+        let count = 0;
+        document.getElementById('status-txt').innerText = 'POURING...';
+        document.getElementById('status-txt').style.background = '#f39c12';
+        document.getElementById('progress-bar').style.display = 'block';
+
+        spawnTimer = setInterval(() => {
+            if(count >= MAX_WATER) {
+                clearInterval(spawnTimer);
+                checkTimer = setTimeout(checkWin, 3000);
+                return;
+            }
+            const drop = Bodies.circle(levels[currentLvl].s[0] + (Math.random()*10-5), levels[currentLvl].s[1] + 20, 5, {
+                restitution: 0.3, friction: 0.001, density: 0.05, render: { fillStyle: '#3498db' }
+            });
+            waterDrops.push(drop);
+            Composite.add(engine.world, drop);
+            count++;
+        }, 30);
+    }
+
+    function checkWin() {
+        if(state !== 'SIM') return;
+        let inGlass = 0;
+        waterDrops.forEach(d => {
+            if(Matter.Bounds.contains(glassSensor.bounds, d.position) && Matter.Detector.canCollide(d.collisionFilter, glassSensor.collisionFilter)) {
+                if(Matter.Collision.collides(d, glassSensor)) inGlass++;
+            }
+        });
+
+        if(inGlass >= WIN_TARGET) {
+            document.getElementById('status-txt').innerText = 'SUCCESS!';
+            document.getElementById('status-txt').style.background = '#2ecc71';
+            setTimeout(() => {
+                currentLvl++;
+                if(currentLvl >= levels.length) showScreen("YOU WIN!", "All 20 levels completed.");
+                else showScreen("LEVEL CLEARED!", `Ready for Level ${currentLvl + 1}?`, "NEXT");
+            }, 1500);
+        } else {
+            document.getElementById('status-txt').innerText = 'FAILED!';
+            setTimeout(() => showScreen("OUT OF WATER", "Try drawing a better path.", "RETRY"), 1000);
         }
     }
 
-    // --- 9. MAIN GAME LOOP ---
-    const clock = new THREE.Clock();
-
-    function animate() {
-        requestAnimationFrame(animate);
-        const dt = clock.getDelta();
-
-        if (gameState === 'RACE' || gameState === 'FINISH') {
-            // Player Logic
-            player.update(dt, gameState==='RACE'?inputs:{accel:false,brake:true,left:false,right:false,drift:false});
-
-            // Bot AI Logic (Advanced Spline Follow + Rubberbanding)
-            racers.forEach(bot => {
-                if(bot.isPlayer) return;
-                
-                // Target point slightly ahead on spline
-                const targetT = (bot.progress + 0.05) % 1.0;
-                const targetPt = trackCurve.getPointAt(targetT);
-                
-                // Convert to local space to determine steering
-                const localTarget = bot.group.worldToLocal(targetPt.clone());
-                
-                const botInput = { accel: true, brake: false, left: false, right: false, drift: false };
-                
-                if (localTarget.x > 2) botInput.left = true;
-                if (localTarget.x < -2) botInput.right = true;
-
-                // Rubberbanding: Adjust bot max speed based on distance to player
-                const distToPlayer = bot.progress - player.progress;
-                if(distToPlayer > 0.1) bot.maxSpeed = bot.baseMaxSpeed * 0.8; // far ahead
-                else if (distToPlayer < -0.1) bot.maxSpeed = bot.baseMaxSpeed * 1.2; // far behind
-                else bot.maxSpeed = bot.baseMaxSpeed;
-
-                // Randomly Drift on sharp turns
-                if(Math.abs(localTarget.x) > 10 && bot.speed > 2) botInput.drift = true;
-
-                bot.update(dt, botInput);
-            });
-
-            // Update Item Boxes
-            itemBoxes.forEach(box => {
-                box.children[0].rotation.x += 0.05;
-                box.children[0].rotation.y += 0.05;
-                if(!box.userData.active) {
-                    box.userData.respawnTimer--;
-                    if(box.userData.respawnTimer <= 0) {
-                        box.userData.active = true;
-                        box.visible = true;
-                    }
-                }
-            });
-
-            // Calculate Position
-            const standings = [...racers].sort((a,b) => (b.lap + b.progress) - (a.lap + a.progress));
-            const pIdx = standings.indexOf(player) + 1;
-            const suffix = pIdx===1?'st':(pIdx===2?'nd':(pIdx===3?'rd':'th'));
-            if(gameState !== 'FINISH') document.getElementById('position-display').innerText = `${pIdx}${suffix}`;
-
-            particles.update();
-            drawMinimap();
-        }
-
-        // Camera Follow Logic (Dynamic Spring Camera)
-        const idealOffset = new THREE.Vector3(0, 8, 20); // Behind and above
-        const idealLookAt = new THREE.Vector3(0, 0, -20); // Look ahead
-
-        // Apply kart rotation to offset
-        idealOffset.applyQuaternion(player.group.quaternion);
-        idealOffset.add(player.group.position);
-        
-        idealLookAt.applyQuaternion(player.group.quaternion);
-        idealLookAt.add(player.group.position);
-
-        // Smoothly interpolate camera position and target
-        cameraRig.position.lerp(idealOffset, 0.1);
-        
-        // Add dynamic FOV based on speed/boost
-        camera.fov = THREE.MathUtils.lerp(camera.fov, 70 + (player.speed * 5), 0.1);
-        camera.updateProjectionMatrix();
-        
-        // Custom lookAt interpolation for stability
-        const currentLookAt = new THREE.Vector3(0,0,-1).applyQuaternion(cameraRig.quaternion).add(cameraRig.position);
-        currentLookAt.lerp(idealLookAt, 0.15);
-        cameraRig.lookAt(currentLookAt);
-
-        renderer.render(scene, camera);
+    // Input Handling
+    function getXY(e) {
+        const rect = render.canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (clientX - rect.left) * (GW / rect.width), y: (clientY - rect.top) * (GH / rect.height) };
     }
 
-    // Resize handler
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
+    function startDraw(e) {
+        if(state !== 'DRAW') return;
+        isDrawing = true; lastPt = getXY(e);
+    }
+
+    function drawLine(e) {
+        if(!isDrawing || state !== 'DRAW' || inkUsed >= MAX_INK) return;
+        e.preventDefault();
+        const pt = getXY(e);
+        const dist = Vector.magnitude(Vector.sub(pt, lastPt));
+        if(dist > 8) {
+            const circle = Bodies.circle(pt.x, pt.y, 6, { isStatic: true, render: { fillStyle: '#2c3e50' } });
+            Composite.add(engine.world, circle);
+            drawnLines.push(circle);
+            inkUsed += dist; lastPt = pt;
+        }
+    }
+
+    function endDraw(e) {
+        if(state !== 'DRAW') return;
+        isDrawing = false; lastPt = null;
+        if(drawnLines.length > 0) { state = 'SIM'; spawnWater(); }
+    }
+
+    const c = render.canvas;
+    c.addEventListener('mousedown', startDraw); c.addEventListener('mousemove', drawLine); window.addEventListener('mouseup', endDraw);
+    c.addEventListener('touchstart', startDraw, {passive:false}); c.addEventListener('touchmove', drawLine, {passive:false}); window.addEventListener('touchend', endDraw);
+
+    Events.on(engine, 'afterUpdate', () => {
+        if(state === 'SIM') {
+            let inGlass = 0;
+            waterDrops.forEach(d => {
+                if(d.position.y > GH + 100) Composite.remove(engine.world, d); // cleanup
+                else if(Matter.Bounds.contains(glassSensor.bounds, d.position) && Matter.Collision.collides(d, glassSensor)) inGlass++;
+            });
+            document.getElementById('progress-fill').style.width = `${Math.min(100, (inGlass/WIN_TARGET)*100)}%`;
+        }
     });
 
-    init();
-    animate();
+    function showScreen(title, desc, btnText = "PLAY") {
+        document.getElementById('overlay').style.display = 'flex';
+        document.getElementById('o-title').innerText = title;
+        document.getElementById('o-desc').innerText = desc;
+        document.getElementById('start-btn').innerText = btnText;
+    }
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+        document.getElementById('overlay').style.display = 'none';
+        if(currentLvl >= levels.length) currentLvl = 0;
+        initLevel(currentLvl);
+    });
+
+    Render.run(render); Runner.run(Runner.create(), engine);
 </script>
 </body>
 </html>
